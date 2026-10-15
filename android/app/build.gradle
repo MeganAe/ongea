@@ -32,7 +32,10 @@ android {
             // Signature de développement pour produire un APK installable localement.
             // Configurez une vraie clé de signature avant toute publication.
             signingConfig signingConfigs.debug
+            // Le plugin Flutter active shrinkResources par défaut en release ;
+            // il exige minifyEnabled true. On désactive les deux explicitement.
             minifyEnabled false
+            shrinkResources false
         }
     }
 }
