@@ -6,7 +6,7 @@ Application Android prioritaire en français, construite avec Flutter/Dart, Mate
 
 ## Prérequis
 
-- Flutter stable (Dart 3.4 ou supérieur) et Android SDK ; Java 17 pour Gradle/Android. Le wrapper Gradle 8.14.3 est inclus.
+- Flutter stable (Dart 3.4 ou supérieur) et Android SDK ; Java 17 pour Gradle/Android. Wrapper Gradle 8.14.3, AGP 8.11.1 et Kotlin Gradle Plugin 2.2.20 inclus.
 - Un projet Firebase avec une application Android dont l’identifiant est `com.ongea.app`.
 - Firebase CLI et Node.js 20 uniquement pour déployer les Cloud Functions.
 
