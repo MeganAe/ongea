@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "749733793997",
+    "project_id": "ongea-25f89",
+    "storage_bucket": "ongea-25f89.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749733793997:android:392bf6c72d8d1f32aa1984",
+        "android_client_info": {
+          "package_name": "com.ongea.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDDnfLik4mBxvSmvTurJoRQdY_6W04QwpY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

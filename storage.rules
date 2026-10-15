@@ -1,0 +1,37 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function chatParticipant(chatId) {
+      return signedIn()
+        && firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants.hasAny([request.auth.uid]);
+    }
+
+    function validImage() {
+      return request.resource != null
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /chats/{chatId}/{allPaths=**} {
+      allow read: if chatParticipant(chatId);
+      allow create, update: if chatParticipant(chatId) && validImage();
+      allow delete: if chatParticipant(chatId);
+    }
+
+    match /statuses/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == userId && validImage();
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /profiles/{userId}/{allPaths=**} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == userId && validImage();
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+  }
+}

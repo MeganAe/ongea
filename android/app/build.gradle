@@ -1,0 +1,46 @@
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+// FlutterFire configure ajoute google-services.json. Le plugin est facultatif en mode démo.
+if (file("google-services.json").exists()) {
+    apply plugin: 'com.google.gms.google-services'
+}
+
+android {
+    namespace "com.ongea.app"
+    compileSdk flutter.compileSdkVersion
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_17.toString()
+    }
+
+    defaultConfig {
+        applicationId "com.ongea.app"
+        minSdk 23
+        targetSdk flutter.targetSdkVersion
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            // Signature de développement pour produire un APK installable localement.
+            // Configurez une vraie clé de signature avant toute publication.
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+        }
+    }
+}
+
+flutter {
+    source "../.."
+}
