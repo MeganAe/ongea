@@ -59,7 +59,9 @@ jobs:
 
       - name: Afficher les empreintes de signature Android
         working-directory: android
-        run: ./gradlew --no-daemon --console=plain signingReport
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon --console=plain signingReport
 
       - name: Construire l’APK release
         env:
