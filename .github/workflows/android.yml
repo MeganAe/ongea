@@ -1,0 +1,112 @@
+name: Build APK Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publier aussi une release GitHub avec l’APK
+        required: true
+        type: boolean
+        default: false
+      release_tag:
+        description: Tag de la release, par exemple v1.0.0 (requis si publication activée)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compilation Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Installer Flutter stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Charger la configuration Firebase (facultatif)
+        env:
+          FIREBASE_OPTIONS_B64: ${{ secrets.FIREBASE_OPTIONS_B64 }}
+          GOOGLE_SERVICES_B64: ${{ secrets.GOOGLE_SERVICES_B64 }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$FIREBASE_OPTIONS_B64" && -n "$GOOGLE_SERVICES_B64" ]]; then
+            printf '%s' "$FIREBASE_OPTIONS_B64" | base64 --decode > lib/firebase_options.g.dart
+            mkdir -p android/app
+            printf '%s' "$GOOGLE_SERVICES_B64" | base64 --decode > android/app/google-services.json
+            echo "Configuration Firebase installée."
+          elif [[ -n "$FIREBASE_OPTIONS_B64" || -n "$GOOGLE_SERVICES_B64" ]]; then
+            echo "::error::Ajoutez les deux secrets FIREBASE_OPTIONS_B64 et GOOGLE_SERVICES_B64, ou aucun pour compiler le mode démo."
+            exit 1
+          else
+            echo "Aucune configuration Firebase fournie : compilation du mode démo."
+          fi
+
+      - name: Installer les dépendances Flutter
+        run: flutter pub get
+
+      - name: Afficher les empreintes de signature Android
+        working-directory: android
+        run: ./gradlew --no-daemon --console=plain signingReport
+
+      - name: Construire l’APK release
+        env:
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_UPLOAD_PRESET: ${{ secrets.CLOUDINARY_UPLOAD_PRESET }}
+        run: |
+          flutter build apk --release \
+            --dart-define="CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}" \
+            --dart-define="CLOUDINARY_UPLOAD_PRESET=${CLOUDINARY_UPLOAD_PRESET}"
+
+      - name: Publier l’APK en artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ongea-android-${{ github.sha }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  publish-release:
+    name: Publier la release GitHub
+    if: ${{ inputs.publish_release }}
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Vérifier le tag saisi
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [[ -z "$RELEASE_TAG" ]]; then
+            echo "::error::Saisissez un tag, par exemple v1.0.0."
+            exit 1
+          fi
+
+      - name: Télécharger l’APK compilé
+        uses: actions/download-artifact@v4
+        with:
+          name: ongea-android-${{ github.sha }}
+          path: release-assets
+
+      - name: Créer la release et joindre l’APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: Ongea ${{ inputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: release-assets/app-release.apk
