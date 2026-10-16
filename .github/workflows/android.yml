@@ -57,11 +57,9 @@ jobs:
       - name: Installer les dépendances Flutter
         run: flutter pub get
 
-      - name: Afficher les empreintes de signature Android
+      - name: Rendre le wrapper Gradle exécutable
         working-directory: android
-        run: |
-          chmod +x ./gradlew
-          ./gradlew --no-daemon --console=plain signingReport
+        run: chmod +x ./gradlew
 
       - name: Construire l’APK release
         env:
@@ -71,6 +69,31 @@ jobs:
           flutter build apk --release \
             --dart-define="CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}" \
             --dart-define="CLOUDINARY_UPLOAD_PRESET=${CLOUDINARY_UPLOAD_PRESET}"
+
+      - name: Afficher les empreintes du certificat APK
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          APK_SIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          if [[ -z "$APK_SIGNER" ]]; then
+            echo "::error::apksigner introuvable dans le SDK Android."
+            exit 1
+          fi
+          APK_SIGNER_OUTPUT="$("$APK_SIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk)"
+          printf '%s\n' "$APK_SIGNER_OUTPUT"
+          printf '%s' "$APK_SIGNER_OUTPUT" | python3 -c '
+          import re, sys
+          output = sys.stdin.read()
+          fingerprints = [("SHA1", r"certificate SHA-1 digest:\s*([0-9a-fA-F]+)"),
+                          ("SHA-256", r"certificate SHA-256 digest:\s*([0-9a-fA-F]+)")]
+          for label, pattern in fingerprints:
+              match = re.search(pattern, output, re.IGNORECASE)
+              if not match:
+                  print(f"::error::Empreinte {label} absente de la signature APK.")
+                  sys.exit(1)
+              digest = match.group(1).upper()
+              print(f"{label}: " + ":".join(digest[i:i+2] for i in range(0, len(digest), 2)))
+          '
 
       - name: Publier l’APK en artefact
         uses: actions/upload-artifact@v4
