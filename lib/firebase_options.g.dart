@@ -1,5 +1,6 @@
-// STUB DE DÉVELOPPEMENT — remplacé par `flutterfire configure`.
-// Ces valeurs ne sont pas des secrets. Ne collez jamais de clé de compte de service ici.
+// Options Android Ongea générées à partir de `google-services.json`.
+// Les plateformes autres qu’Android restent à configurer avec `flutterfire configure`.
+// Ces valeurs client ne sont pas une clé de compte de service.
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
@@ -32,11 +33,11 @@ abstract class DefaultFirebaseOptions {
     storageBucket: 'YOUR_FIREBASE_PROJECT_ID.appspot.com',
   );
   static const android = FirebaseOptions(
-    apiKey: 'YOUR_FIREBASE_API_KEY',
-    appId: '1:000000000000:android:0000000000000000',
-    messagingSenderId: '000000000000',
-    projectId: 'YOUR_FIREBASE_PROJECT_ID',
-    storageBucket: 'YOUR_FIREBASE_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyDDnfLik4mBxvSmvTurJoRQdY_6W04QwpY',
+    appId: '1:749733793997:android:392bf6c72d8d1f32aa1984',
+    messagingSenderId: '749733793997',
+    projectId: 'ongea-25f89',
+    storageBucket: 'ongea-25f89.firebasestorage.app',
   );
   static const ios = FirebaseOptions(
     apiKey: 'YOUR_FIREBASE_API_KEY',

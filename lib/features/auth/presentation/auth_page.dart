@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/app_providers.dart';
@@ -59,6 +60,43 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     } catch (_) {
       _message(
         'Impossible de terminer cette opération. Vérifiez votre connexion et la configuration Firebase.',
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    if (!ref.read(firebaseReadyProvider)) {
+      _message('Configurez Firebase pour vous connecter avec Google.');
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await AuthRepository().signInWithGoogle();
+      ref.read(demoModeProvider.notifier).state = false;
+      if (mounted) context.go('/chats');
+    } on GoogleSignInException catch (error) {
+      if (error.code.name == 'canceled') return;
+      if (error.code.name == 'clientConfigurationError' ||
+          error.code.name == 'providerConfigurationError') {
+        _message(
+          'La connexion Google est mal configurée. Vérifiez le fournisseur Firebase, le fichier google-services.json et les empreintes SHA.',
+        );
+      } else {
+        _message('La connexion Google a échoué. Réessayez dans un instant.');
+      }
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'invalid-credential') {
+        _message(
+          'Le jeton Google est invalide. Vérifiez que google-services.json est à jour.',
+        );
+      } else {
+        _message(authErrorMessage(error));
+      }
+    } catch (_) {
+      _message(
+        'Impossible de terminer la connexion Google. Vérifiez votre réseau et la configuration Firebase.',
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -252,6 +290,47 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                             ),
                     ),
                   ),
+                  if (firebaseReady) ...[
+                    const SizedBox(height: 16),
+                    const Row(
+                      children: [
+                        Expanded(child: Divider(color: AppColors.border)),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            'OU',
+                            style: TextStyle(
+                              color: AppColors.secondaryText,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        Expanded(child: Divider(color: AppColors.border)),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      height: 52,
+                      child: OutlinedButton.icon(
+                        onPressed: _busy ? null : _signInWithGoogle,
+                        icon: const Text(
+                          'G',
+                          style: TextStyle(
+                            color: Color(0xFF4285F4),
+                            fontSize: 21,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        label: const Text('Continuer avec Google'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.text,
+                          side: const BorderSide(color: AppColors.border),
+                          minimumSize: const Size.fromHeight(52),
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: _busy

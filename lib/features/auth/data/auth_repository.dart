@@ -1,7 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthRepository {
+  static Future<void>? _googleSignInInitialization;
+
   AuthRepository({FirebaseAuth? auth, FirebaseFirestore? firestore})
     : _auth = auth ?? FirebaseAuth.instance,
       _firestore = firestore ?? FirebaseFirestore.instance;
@@ -63,6 +66,73 @@ class AuthRepository {
     return credential;
   }
 
+  Future<UserCredential> signInWithGoogle() async {
+    final googleSignIn = GoogleSignIn.instance;
+    await (_googleSignInInitialization ??= googleSignIn.initialize());
+    if (!googleSignIn.supportsAuthenticate()) {
+      throw UnsupportedError(
+        'La connexion Google n’est pas disponible sur cette plateforme.',
+      );
+    }
+
+    final googleUser = await googleSignIn.authenticate();
+    final idToken = googleUser.authentication.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      throw StateError('Google n’a pas renvoyé de jeton d’identification.');
+    }
+
+    final credential = GoogleAuthProvider.credential(idToken: idToken);
+    final userCredential = await _auth.signInWithCredential(credential);
+    final user = userCredential.user;
+    if (user == null) throw StateError('La connexion Google a échoué.');
+    await _syncProviderProfile(user);
+    return userCredential;
+  }
+
+  Future<void> _syncProviderProfile(User user) async {
+    final userRef = _firestore.collection('users').doc(user.uid);
+    final profileRef = _firestore.collection('profiles').doc(user.uid);
+    final snapshots = await Future.wait([userRef.get(), profileRef.get()]);
+    final userExists = snapshots[0].exists;
+    final profileExists = snapshots[1].exists;
+    final name = _socialDisplayName(user);
+
+    final userData = <String, dynamic>{
+      'name': name,
+      'email': user.email?.trim().toLowerCase() ?? '',
+      'lastSeen': FieldValue.serverTimestamp(),
+    };
+    if (!userExists) {
+      userData.addAll({
+        // Les avatars Ongea sont stockés sur Cloudinary, pas sur l’URL Google.
+        'photoUrl': null,
+        'fcmToken': null,
+        'blockedUsers': <String>[],
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+    await userRef.set(userData, SetOptions(merge: true));
+
+    final profileData = <String, dynamic>{
+      'name': name,
+      'lastSeen': FieldValue.serverTimestamp(),
+    };
+    if (!profileExists) {
+      profileData.addAll({
+        'photoUrl': null,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+    await profileRef.set(profileData, SetOptions(merge: true));
+  }
+
+  String _socialDisplayName(User user) {
+    final displayName = user.displayName?.trim();
+    if (displayName != null && displayName.length >= 2) return displayName;
+    final emailName = (user.email ?? '').split('@').first.trim();
+    return emailName.length >= 2 ? emailName : 'Utilisateur Ongea';
+  }
+
   Future<void> updateProfilePhoto({
     required String uid,
     required String photoUrl,
@@ -98,6 +168,15 @@ class AuthRepository {
         // La déconnexion ne doit pas rester bloquée en cas de réseau indisponible.
       }
     }
+    final googleInitialization = _googleSignInInitialization;
+    if (googleInitialization != null) {
+      try {
+        await googleInitialization;
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {
+        // La session Firebase doit pouvoir se fermer même si Google est indisponible.
+      }
+    }
     await _auth.signOut();
   }
 }
@@ -119,7 +198,11 @@ String authErrorMessage(FirebaseAuthException error) {
     case 'network-request-failed':
       return 'Connexion impossible. Vérifiez votre accès à Internet.';
     case 'operation-not-allowed':
-      return 'La connexion par e-mail n’est pas activée dans Firebase.';
+      return 'Cette méthode de connexion n’est pas activée dans Firebase.';
+    case 'account-exists-with-different-credential':
+      return 'Cette adresse e-mail utilise déjà une autre méthode de connexion.';
+    case 'credential-already-in-use':
+      return 'Ce compte Google est déjà associé à un autre compte Ongea.';
     default:
       return 'Une erreur est survenue. Vérifiez vos informations puis réessayez.';
   }

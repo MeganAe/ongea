@@ -12,7 +12,20 @@
           "package_name": "com.ongea.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "749733793997-v630i0nm5omh566rg7fa6habus5t9cu4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ongea.app",
+            "certificate_hash": "6a22336830d69d21009ed8f88e911223c8fbd96b"
+          }
+        },
+        {
+          "client_id": "749733793997-jcnnl062u44mrictdenr9umeb06euvmh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDDnfLik4mBxvSmvTurJoRQdY_6W04QwpY"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "749733793997-jcnnl062u44mrictdenr9umeb06euvmh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
