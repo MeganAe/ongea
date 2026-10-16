@@ -82,7 +82,8 @@ class CloudinaryMediaService {
     final secureUrl = payload['secure_url'] as String?;
     final publicId = payload['public_id'] as String?;
     final parsedUrl = secureUrl == null ? null : Uri.tryParse(secureUrl);
-    if (parsedUrl == null ||
+    if (secureUrl == null ||
+        parsedUrl == null ||
         parsedUrl.scheme != 'https' ||
         parsedUrl.host != 'res.cloudinary.com' ||
         publicId == null ||

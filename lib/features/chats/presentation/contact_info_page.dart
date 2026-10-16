@@ -183,6 +183,7 @@ class _ContactInfoPageState extends ConsumerState<ContactInfoPage> {
     String currentUid,
     bool demo,
   ) {
+    final chatId = widget.chatId;
     final muted = demo
         ? (_demoMuted ?? chat?.isMutedFor(currentUid) ?? false)
         : (chat?.isMutedFor(currentUid) ?? false);
