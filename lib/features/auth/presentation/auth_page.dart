@@ -82,8 +82,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       ref.read(demoModeProvider.notifier).state = false;
       if (mounted) context.go('/chats');
     } on GoogleSignInException catch (error) {
-      if (error.code.name == 'canceled') return;
-      if (error.code.name == 'clientConfigurationError' ||
+      if (error.code.name == 'canceled') {
+        _message('Connexion Google annulée.');
+      } else if (error.code.name == 'clientConfigurationError' ||
           error.code.name == 'providerConfigurationError') {
         _message(
           'La connexion Google est mal configurée. Vérifiez le fournisseur Firebase, le fichier google-services.json et les empreintes SHA.',
