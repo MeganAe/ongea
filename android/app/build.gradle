@@ -4,9 +4,18 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-// FlutterFire configure ajoute google-services.json. Le plugin est facultatif en mode démo.
+// FlutterFire configure ajoute google-services.json. Le plugin est facultatif en mode dÃ©mo.
 if (file("google-services.json").exists()) {
     apply plugin: 'com.google.gms.google-services'
+}
+
+// ClÃ© de signature fixe (facultative). Le workflow GitHub crÃ©e android/key.properties
+// et android/app/ongea-release.jks Ã  partir des secrets. Sans eux, on retombe sur la
+// clÃ© de dÃ©bogage (l'empreinte SHA change alors Ã  chaque build).
+def keystorePropertiesFile = rootProject.file("key.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
 }
 
 android {
@@ -27,13 +36,22 @@ android {
         versionName flutter.versionName
     }
 
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties["storeFile"])
+                storePassword keystoreProperties["storePassword"]
+                keyAlias keystoreProperties["keyAlias"]
+                keyPassword keystoreProperties["keyPassword"]
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Signature de développement pour produire un APK installable localement.
-            // Configurez une vraie clé de signature avant toute publication.
-            signingConfig signingConfigs.debug
-            // Le plugin Flutter active shrinkResources par défaut en release ;
-            // il exige minifyEnabled true. On désactive les deux explicitement.
+            signingConfig keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            // Le plugin Flutter active shrinkResources par dÃ©faut en release ;
+            // il exige minifyEnabled true. On dÃ©sactive les deux explicitement.
             minifyEnabled false
             shrinkResources false
         }
