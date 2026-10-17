@@ -23,22 +23,28 @@ class AuthRepository {
     );
     final user = credential.user;
     if (user == null) throw StateError('Le compte n’a pas pu être créé.');
-    await user.updateDisplayName(name.trim());
-    await _firestore.collection('users').doc(user.uid).set({
-      'name': name.trim(),
-      'email': email.trim().toLowerCase(),
-      'photoUrl': null,
-      'lastSeen': FieldValue.serverTimestamp(),
-      'fcmToken': null,
-      'blockedUsers': <String>[],
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-    await _firestore.collection('profiles').doc(user.uid).set({
-      'name': name.trim(),
-      'photoUrl': null,
-      'lastSeen': FieldValue.serverTimestamp(),
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    try {
+      await user.updateDisplayName(name.trim());
+      final batch = _firestore.batch();
+      batch.set(_firestore.collection('users').doc(user.uid), {
+        'name': name.trim(),
+        'email': email.trim().toLowerCase(),
+        'photoUrl': null,
+        'lastSeen': FieldValue.serverTimestamp(),
+        'fcmToken': null,
+        'blockedUsers': <String>[],
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(_firestore.collection('profiles').doc(user.uid), {
+        'name': name.trim(),
+        'photoUrl': null,
+        'lastSeen': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      await batch.commit();
+    } catch (error) {
+      throw AccountProfileSetupException(uid: user.uid, cause: error);
+    }
     return credential;
   }
 
@@ -179,6 +185,14 @@ class AuthRepository {
     }
     await _auth.signOut();
   }
+}
+
+/// L'inscription Auth a réussi, mais le profil Firestore n'a pas été créé.
+class AccountProfileSetupException implements Exception {
+  const AccountProfileSetupException({required this.uid, required this.cause});
+
+  final String uid;
+  final Object cause;
 }
 
 String authErrorMessage(FirebaseAuthException error) {

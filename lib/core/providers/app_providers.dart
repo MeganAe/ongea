@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/app_user.dart';
-import '../models/call_record.dart';
 import '../models/chat_model.dart';
 import '../models/message_model.dart';
 import '../models/status_model.dart';
@@ -139,10 +138,6 @@ final statusListProvider = StreamProvider<List<StatusModel>>((ref) {
       .map((snapshot) => snapshot.docs.map(StatusModel.fromDocument).toList());
 });
 
-final callLogProvider = StateProvider<List<CallRecord>>(
-  (ref) => DemoData.calls(),
-);
-
 abstract final class DemoData {
   static const meId = 'demo-me';
   static const ayaId = 'demo-aya';
@@ -266,29 +261,6 @@ abstract final class DemoData {
         createdAt: now.subtract(const Duration(hours: 2)),
         expiresAt: now.add(const Duration(hours: 22)),
         viewedBy: const [meId],
-      ),
-    ];
-  }
-
-  static List<CallRecord> calls() {
-    final now = DateTime.now();
-    return [
-      CallRecord(
-        contactName: 'Aya Mukendi',
-        direction: 'outgoing',
-        createdAt: now.subtract(const Duration(minutes: 18)),
-        video: true,
-      ),
-      CallRecord(
-        contactName: 'Malick Bahati',
-        direction: 'incoming',
-        createdAt: now.subtract(const Duration(hours: 2)),
-        missed: true,
-      ),
-      CallRecord(
-        contactName: 'Jules Kasereka',
-        direction: 'outgoing',
-        createdAt: now.subtract(const Duration(days: 1, hours: 3)),
       ),
     ];
   }

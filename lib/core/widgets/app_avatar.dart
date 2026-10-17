@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../constants/app_colors.dart';
+import '../theme/app_palette.dart';
 
 class AppAvatar extends StatelessWidget {
   const AppAvatar({
@@ -19,11 +19,12 @@ class AppAvatar extends StatelessWidget {
   final double ringWidth;
 
   String get _initials {
-    final parts = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .toList();
+    final parts =
+        name
+            .trim()
+            .split(RegExp(r'\s+'))
+            .where((part) => part.isNotEmpty)
+            .toList();
     if (parts.isEmpty) return '?';
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
     return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
@@ -34,20 +35,22 @@ class AppAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final image = CircleAvatar(
       radius: size / 2,
-      backgroundColor: AppColors.activeChip,
-      foregroundColor: AppColors.primary,
-      backgroundImage: photoUrl != null && photoUrl!.isNotEmpty
-          ? NetworkImage(photoUrl!)
-          : null,
-      child: photoUrl == null || photoUrl!.isEmpty
-          ? Text(
-              _initials,
-              style: TextStyle(
-                fontSize: size * 0.29,
-                fontWeight: FontWeight.w700,
-              ),
-            )
-          : null,
+      backgroundColor: context.ongea.activeChip,
+      foregroundColor: context.ongea.primary,
+      backgroundImage:
+          photoUrl != null && photoUrl!.isNotEmpty
+              ? NetworkImage(photoUrl!)
+              : null,
+      child:
+          photoUrl == null || photoUrl!.isEmpty
+              ? Text(
+                _initials,
+                style: TextStyle(
+                  fontSize: size * 0.29,
+                  fontWeight: FontWeight.w700,
+                ),
+              )
+              : null,
     );
     if (ringWidth <= 0 || ringColor == null) return image;
     return Container(

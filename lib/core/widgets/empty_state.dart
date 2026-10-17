@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../constants/app_colors.dart';
+import '../theme/app_palette.dart';
 
 class EmptyState extends StatelessWidget {
   const EmptyState({
@@ -27,11 +27,11 @@ class EmptyState extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: const BoxDecoration(
-                color: AppColors.activeChip,
+              decoration: BoxDecoration(
+                color: context.ongea.activeChip,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 32, color: AppColors.primary),
+              child: Icon(icon, size: 32, color: context.ongea.primary),
             ),
             const SizedBox(height: 18),
             Text(
@@ -43,8 +43,8 @@ class EmptyState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.secondaryText,
+              style: TextStyle(
+                color: context.ongea.secondaryText,
                 height: 1.45,
               ),
             ),

@@ -35,10 +35,12 @@ class _StatusViewerPageState extends ConsumerState<StatusViewerPage> {
     };
     final uid = ref.watch(currentUserProvider)?.uid ?? DemoData.meId;
     return Scaffold(
-      backgroundColor: const Color(0xFF101414),
+      backgroundColor: const Color(0xFF0E1819),
       body: statusesAsync.when(
-        loading: () =>
-            const Center(child: CircularProgressIndicator(color: Colors.white)),
+        loading:
+            () => const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
         error: (error, stack) => _error(context),
         data: (statuses) {
           StatusModel? status;
@@ -60,19 +62,20 @@ class _StatusViewerPageState extends ConsumerState<StatusViewerPage> {
                 Image.network(
                   status.imageUrl!,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Center(
-                    child: Icon(
-                      Icons.broken_image_outlined,
-                      color: Colors.white,
-                      size: 54,
-                    ),
-                  ),
+                  errorBuilder:
+                      (_, __, ___) => const Center(
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          color: Colors.white,
+                          size: 54,
+                        ),
+                      ),
                 )
               else
                 Container(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF0F766E), Color(0xFF174A45)],
+                      colors: [Color(0xFF135B60), Color(0xFF0A3436)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),

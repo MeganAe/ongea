@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/widgets/ongea_mark.dart';
 import '../data/auth_repository.dart';
 
 class AuthPage extends ConsumerStatefulWidget {
@@ -55,6 +56,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       }
       ref.read(demoModeProvider.notifier).state = false;
       if (mounted) context.go('/chats');
+    } on AccountProfileSetupException {
+      _message(
+        'Votre compte a été créé, mais votre profil n’a pas pu être enregistré. Vérifiez les règles Firestore, puis réessayez de vous connecter.',
+      );
     } on FirebaseAuthException catch (error) {
       _message(authErrorMessage(error));
     } catch (_) {
@@ -130,7 +135,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   Widget build(BuildContext context) {
     final firebaseReady = ref.watch(firebaseReadyProvider);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.ongea.background,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -144,35 +149,38 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     child: Container(
                       width: 76,
                       height: 76,
-                      decoration: const BoxDecoration(
-                        color: AppColors.activeChip,
-                        shape: BoxShape.circle,
+                      decoration: BoxDecoration(
+                        color: context.ongea.primary,
+                        borderRadius: BorderRadius.circular(22),
                       ),
-                      child: const Icon(
-                        Icons.forum_outlined,
-                        size: 37,
-                        color: AppColors.primary,
+                      child: Center(
+                        child: OngeaMark(
+                          size: 44,
+                          color: context.ongea.onPrimary,
+                          accentColor: context.ongea.accent,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
+                  Text(
                     'Ongea',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 34,
+                      fontSize: 32,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
+                      letterSpacing: -1.1,
+                      color: context.ongea.primary,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     _isRegister
                         ? 'Créez votre compte et rapprochez-vous.'
-                        : 'Vos conversations, simplement.',
+                        : 'Les liens se créent en parlant.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.secondaryText,
+                    style: TextStyle(
+                      color: context.ongea.secondaryText,
                       fontSize: 15,
                     ),
                   ),
@@ -181,21 +189,24 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF7E6),
+                        color: context.ongea.noticeBackground,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFFFE2A8)),
+                        border: Border.all(color: context.ongea.noticeBorder),
                       ),
-                      child: const Row(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.info_outline, color: Color(0xFF9A6700)),
+                          Icon(
+                            Icons.info_outline,
+                            color: context.ongea.noticeForeground,
+                          ),
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'Firebase n’est pas encore configuré. Vous pouvez parcourir Ongea en mode démo, ou suivre le README pour activer les comptes et la synchronisation.',
                               style: TextStyle(
                                 height: 1.4,
-                                color: Color(0xFF694F00),
+                                color: context.ongea.noticeForeground,
                               ),
                             ),
                           ),
@@ -204,109 +215,118 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     ),
                     const SizedBox(height: 18),
                   ],
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        if (_isRegister) ...[
-                          TextFormField(
-                            controller: _nameController,
-                            textCapitalization: TextCapitalization.words,
-                            textInputAction: TextInputAction.next,
-                            decoration: const InputDecoration(
-                              labelText: 'Nom complet',
-                              prefixIcon: Icon(Icons.person_outline),
+                  if (firebaseReady)
+                    Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          if (_isRegister) ...[
+                            TextFormField(
+                              controller: _nameController,
+                              textCapitalization: TextCapitalization.words,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                labelText: 'Nom complet',
+                                prefixIcon: Icon(Icons.person_outline),
+                              ),
+                              validator: (value) {
+                                if ((value ?? '').trim().length < 2)
+                                  return 'Saisissez votre nom.';
+                                return null;
+                              },
                             ),
-                            validator: (value) {
-                              if ((value ?? '').trim().length < 2)
-                                return 'Saisissez votre nom.';
-                              return null;
-                            },
+                            const SizedBox(height: 14),
+                          ],
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            autofillHints: const [AutofillHints.email],
+                            decoration: const InputDecoration(
+                              labelText: 'Adresse e-mail',
+                              prefixIcon: Icon(Icons.alternate_email),
+                            ),
+                            validator: _validateEmail,
                           ),
                           const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            autofillHints:
+                                _isRegister
+                                    ? const [AutofillHints.newPassword]
+                                    : const [AutofillHints.password],
+                            onFieldSubmitted: (_) => _submit(),
+                            decoration: InputDecoration(
+                              labelText: 'Mot de passe',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                tooltip:
+                                    _obscurePassword
+                                        ? 'Afficher le mot de passe'
+                                        : 'Masquer le mot de passe',
+                                onPressed:
+                                    () => setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    ),
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                ),
+                              ),
+                            ),
+                            validator: _validatePassword,
+                          ),
                         ],
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          autofillHints: const [AutofillHints.email],
-                          decoration: const InputDecoration(
-                            labelText: 'Adresse e-mail',
-                            prefixIcon: Icon(Icons.alternate_email),
-                          ),
-                          validator: _validateEmail,
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
-                          textInputAction: TextInputAction.done,
-                          autofillHints: _isRegister
-                              ? const [AutofillHints.newPassword]
-                              : const [AutofillHints.password],
-                          onFieldSubmitted: (_) => _submit(),
-                          decoration: InputDecoration(
-                            labelText: 'Mot de passe',
-                            prefixIcon: const Icon(Icons.lock_outline),
-                            suffixIcon: IconButton(
-                              tooltip: _obscurePassword
-                                  ? 'Afficher le mot de passe'
-                                  : 'Masquer le mot de passe',
-                              onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword,
-                              ),
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                              ),
-                            ),
-                          ),
-                          validator: _validatePassword,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 22),
-                  SizedBox(
-                    height: 52,
-                    child: FilledButton(
-                      onPressed: _busy ? null : _submit,
-                      child: _busy
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              _isRegister ? 'Créer mon compte' : 'Se connecter',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                  if (firebaseReady) const SizedBox(height: 22),
+                  if (firebaseReady)
+                    SizedBox(
+                      height: 52,
+                      child: FilledButton(
+                        onPressed: _busy ? null : _submit,
+                        child:
+                            _busy
+                                ? SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: context.ongea.onPrimary,
+                                  ),
+                                )
+                                : Text(
+                                  _isRegister
+                                      ? 'Créer mon compte'
+                                      : 'Se connecter',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                      ),
                     ),
-                  ),
                   if (firebaseReady) ...[
                     const SizedBox(height: 16),
-                    const Row(
+                    Row(
                       children: [
-                        Expanded(child: Divider(color: AppColors.border)),
+                        Expanded(child: Divider(color: context.ongea.border)),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
                             'OU',
                             style: TextStyle(
-                              color: AppColors.secondaryText,
+                              color: context.ongea.secondaryText,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
-                        Expanded(child: Divider(color: AppColors.border)),
+                        Expanded(child: Divider(color: context.ongea.border)),
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -324,31 +344,34 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         ),
                         label: const Text('Continuer avec Google'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.text,
-                          side: const BorderSide(color: AppColors.border),
+                          foregroundColor: context.ongea.text,
+                          side: BorderSide(color: context.ongea.border),
                           minimumSize: const Size.fromHeight(52),
                         ),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: _busy
-                        ? null
-                        : () => setState(() => _isRegister = !_isRegister),
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                    ),
-                    child: Text(
-                      _isRegister
-                          ? 'Déjà inscrit·e ? Se connecter'
-                          : 'Nouveau sur Ongea ? Créer un compte',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
+                  if (firebaseReady) const SizedBox(height: 12),
+                  if (firebaseReady)
+                    TextButton(
+                      onPressed:
+                          _busy
+                              ? null
+                              : () =>
+                                  setState(() => _isRegister = !_isRegister),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      child: Text(
+                        _isRegister
+                            ? 'Déjà inscrit·e ? Se connecter'
+                            : 'Nouveau sur Ongea ? Créer un compte',
+                        style: TextStyle(
+                          color: context.ongea.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
                   if (!firebaseReady) ...[
                     const SizedBox(height: 6),
                     OutlinedButton.icon(
@@ -360,18 +383,18 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                       label: const Text('Explorer la démo'),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(50),
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
+                        foregroundColor: context.ongea.primary,
+                        side: BorderSide(color: context.ongea.primary),
                       ),
                     ),
                   ],
                   const SizedBox(height: 24),
-                  const Text(
-                    'Vos messages restent privés et sont protégés par les règles de sécurité Firebase.',
+                  Text(
+                    'Lorsque Firebase est configuré, les données synchronisées sont protégées par les règles de sécurité.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.secondaryText,
+                      color: context.ongea.secondaryText,
                       height: 1.4,
                     ),
                   ),

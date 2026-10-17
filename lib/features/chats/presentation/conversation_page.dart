@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/models/app_user.dart';
 import '../../../core/models/chat_model.dart';
 import '../../../core/models/message_model.dart';
@@ -13,6 +13,7 @@ import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_avatar.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/ongea_skeleton.dart';
 import '../data/chat_repository.dart';
 
 class ConversationPage extends ConsumerStatefulWidget {
@@ -110,46 +111,35 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 4, 18, 22),
-          child: Row(
-            children: [
-              _AttachmentOption(
-                icon: Icons.photo_library_outlined,
-                label: 'Galerie',
-                color: const Color(0xFF7C4DFF),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery, chat, userId);
-                },
+      builder:
+          (context) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 4, 18, 22),
+              child: Row(
+                children: [
+                  _AttachmentOption(
+                    icon: Icons.photo_library_outlined,
+                    label: 'Galerie',
+                    color: context.ongea.accent,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.gallery, chat, userId);
+                    },
+                  ),
+                  const SizedBox(width: 24),
+                  _AttachmentOption(
+                    icon: Icons.camera_alt_outlined,
+                    label: 'Appareil photo',
+                    color: context.ongea.primary,
+                    onTap: () {
+                      Navigator.pop(context);
+                      _pickImage(ImageSource.camera, chat, userId);
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(width: 24),
-              _AttachmentOption(
-                icon: Icons.camera_alt_outlined,
-                label: 'Appareil photo',
-                color: AppColors.primary,
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera, chat, userId);
-                },
-              ),
-              const SizedBox(width: 24),
-              _AttachmentOption(
-                icon: Icons.insert_drive_file_outlined,
-                label: 'Document',
-                color: const Color(0xFF188038),
-                onTap: () {
-                  Navigator.pop(context);
-                  _toast(
-                    'L’envoi de documents sera ajouté dans une prochaine version.',
-                  );
-                },
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -171,44 +161,55 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: emojis
-                .map(
-                  (emoji) => InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () {
-                      final value = _textController.value;
-                      final selection = value.selection;
-                      final start = selection.isValid
-                          ? selection.start
-                          : value.text.length;
-                      final end = selection.isValid
-                          ? selection.end
-                          : value.text.length;
-                      final text = value.text.replaceRange(start, end, emoji);
-                      _textController.value = TextEditingValue(
-                        text: text,
-                        selection: TextSelection.collapsed(
-                          offset: start + emoji.length,
-                        ),
-                      );
-                      Navigator.pop(context);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Text(emoji, style: const TextStyle(fontSize: 28)),
-                    ),
-                  ),
-                )
-                .toList(),
+      builder:
+          (context) => SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children:
+                    emojis
+                        .map(
+                          (emoji) => InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              final value = _textController.value;
+                              final selection = value.selection;
+                              final start =
+                                  selection.isValid
+                                      ? selection.start
+                                      : value.text.length;
+                              final end =
+                                  selection.isValid
+                                      ? selection.end
+                                      : value.text.length;
+                              final text = value.text.replaceRange(
+                                start,
+                                end,
+                                emoji,
+                              );
+                              _textController.value = TextEditingValue(
+                                text: text,
+                                selection: TextSelection.collapsed(
+                                  offset: start + emoji.length,
+                                ),
+                              );
+                              Navigator.pop(context);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(8),
+                              child: Text(
+                                emoji,
+                                style: const TextStyle(fontSize: 28),
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+              ),
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -267,7 +268,12 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
     final peerId = chat == null ? '' : _peerId(chat, userId);
     final contact = peerId.isEmpty ? null : users[peerId];
     final title = chat == null ? 'Discussion' : _title(chat, userId, users);
-    final onlineLabel = demo ? 'en ligne' : formatLastSeen(contact?.lastSeen);
+    final onlineLabel =
+        demo
+            ? chat?.isGroup == true
+                ? 'conversation de démonstration'
+                : 'profil de démonstration'
+            : formatLastSeen(contact?.lastSeen);
 
     return Scaffold(
       appBar: AppBar(
@@ -278,119 +284,111 @@ class _ConversationPageState extends ConsumerState<ConversationPage> {
           icon: const Icon(Icons.arrow_back),
         ),
         titleSpacing: 0,
-        title: chat == null
-            ? const Text(
-                'Discussion',
-                style: TextStyle(fontSize: 19, color: AppColors.text),
-              )
-            : InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: peerId.isEmpty
-                    ? null
-                    : () => context.push(
-                        '/contact/$peerId?chatId=${widget.chatId}',
-                      ),
-                child: Row(
-                  children: [
-                    AppAvatar(
-                      name: title,
-                      photoUrl: contact?.photoUrl,
-                      size: 40,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.text,
-                            ),
+        title:
+            chat == null
+                ? Text(
+                  'Discussion',
+                  style: TextStyle(fontSize: 19, color: context.ongea.text),
+                )
+                : InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap:
+                      peerId.isEmpty || chat.isGroup
+                          ? null
+                          : () => context.push(
+                            '/contact/$peerId?chatId=${widget.chatId}',
                           ),
-                          const SizedBox(height: 1),
-                          Text(
-                            onlineLabel,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.secondaryText,
-                            ),
-                          ),
-                        ],
+                  child: Row(
+                    children: [
+                      AppAvatar(
+                        name: title,
+                        photoUrl: contact?.photoUrl,
+                        size: 40,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                                color: context.ongea.text,
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              onlineLabel,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: context.ongea.secondaryText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
         actions: [
-          IconButton(
-            tooltip: 'Appel vidéo',
-            onPressed: () =>
-                _toast('Les appels vidéo ne sont pas encore disponibles.'),
-            icon: const Icon(Icons.videocam_outlined),
-          ),
-          IconButton(
-            tooltip: 'Appel audio',
-            onPressed: () =>
-                _toast('Les appels audio ne sont pas encore disponibles.'),
-            icon: const Icon(Icons.call_outlined),
-          ),
-          PopupMenuButton<String>(
-            tooltip: 'Options',
-            onSelected: (value) {
-              if (value == 'info' && peerId.isNotEmpty)
-                context.push('/contact/$peerId?chatId=${widget.chatId}');
-              if (value == 'search')
-                _toast(
-                  'La recherche dans cette conversation sera bientôt disponible.',
-                );
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem(value: 'info', child: Text('Infos du contact')),
-              PopupMenuItem(value: 'search', child: Text('Rechercher')),
-            ],
-          ),
-          const SizedBox(width: 2),
+          if (chat != null && !chat.isGroup && peerId.isNotEmpty)
+            IconButton(
+              tooltip: 'Infos du contact',
+              onPressed:
+                  () =>
+                      context.push('/contact/$peerId?chatId=${widget.chatId}'),
+              icon: const Icon(Icons.info_outline),
+            ),
+          const SizedBox(width: 4),
         ],
       ),
       body: ColoredBox(
-        color: AppColors.chatBackground,
+        color: context.ongea.chatBackground,
         child: Column(
           children: [
             Expanded(
               child: messagesAsync.when(
-                loading: () => const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-                error: (error, stack) => const EmptyState(
-                  icon: Icons.cloud_off_outlined,
-                  title: 'Messages indisponibles',
-                  message: 'Vérifiez votre connexion et les règles de sécurité Firebase.',
-                ),
-                data: (messages) => messages.isEmpty
-                    ? const EmptyState(
-                        icon: Icons.waving_hand_outlined,
-                        title: 'Dites bonjour',
-                        message: 'Vos messages sont chiffrés en transit et synchronisés en temps réel.',
-                      )
-                    : _MessagesList(messages: messages, currentUserId: userId),
+                loading: () => OngeaMessageSkeleton(),
+                error:
+                    (error, stack) => const EmptyState(
+                      icon: Icons.cloud_off_outlined,
+                      title: 'Messages indisponibles',
+                      message:
+                          'Vérifiez votre connexion et les règles de sécurité Firebase.',
+                    ),
+                data:
+                    (messages) =>
+                        messages.isEmpty
+                            ? EmptyState(
+                              icon: Icons.waving_hand_outlined,
+                              title: 'Dites bonjour',
+                              message:
+                                  demo
+                                      ? 'Mode démo : cette discussion est un exemple local, aucun message ne sera envoyé.'
+                                      : 'Vos messages sont protégés en transit et synchronisés en temps réel.',
+                            )
+                            : _MessagesList(
+                              messages: messages,
+                              currentUserId: userId,
+                            ),
               ),
             ),
-            _Composer(
-              controller: _textController,
-              hasText: _hasText,
-              onEmoji: _showEmojiPicker,
-              onAttachment: () => _showAttachmentOptions(chat, userId),
-              onCamera: () => _pickImage(ImageSource.camera, chat, userId),
-              onMic: () =>
-                  _toast('L’enregistrement vocal n’est pas encore disponible.'),
-              onSend: () => _sendText(chat, userId),
-            ),
+            if (demo)
+              const _DemoConversationNotice()
+            else
+              _Composer(
+                controller: _textController,
+                hasText: _hasText,
+                onEmoji: _showEmojiPicker,
+                onAttachment: () => _showAttachmentOptions(chat, userId),
+                onCamera: () => _pickImage(ImageSource.camera, chat, userId),
+                onSend: () => _sendText(chat, userId),
+              ),
           ],
         ),
       ),
@@ -447,14 +445,14 @@ class _DateSeparator extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.9),
+          color: context.ongea.surface.withValues(alpha: 0.94),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: AppColors.secondaryText,
+            color: context.ongea.secondaryText,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -486,7 +484,10 @@ class _MessageBubble extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 3),
           padding: const EdgeInsets.fromLTRB(11, 8, 10, 6),
           decoration: BoxDecoration(
-            color: isMine ? AppColors.bubbleOutgoing : AppColors.bubbleIncoming,
+            color:
+                isMine
+                    ? context.ongea.bubbleOutgoing
+                    : context.ongea.bubbleIncoming,
             borderRadius: radius,
             boxShadow: const [
               BoxShadow(
@@ -509,29 +510,31 @@ class _MessageBubble extends StatelessWidget {
                       width: 236,
                       height: 210,
                       fit: BoxFit.cover,
-                      loadingBuilder: (context, child, progress) =>
-                          progress == null
-                          ? child
-                          : const SizedBox(
-                              width: 236,
-                              height: 160,
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
+                      loadingBuilder:
+                          (context, child, progress) =>
+                              progress == null
+                                  ? child
+                                  : const SizedBox(
+                                    width: 236,
+                                    height: 160,
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                      errorBuilder:
+                          (context, error, stack) => SizedBox(
+                            width: 236,
+                            height: 120,
+                            child: Center(
+                              child: Icon(
+                                Icons.broken_image_outlined,
+                                color: context.ongea.secondaryText,
+                                size: 32,
                               ),
                             ),
-                      errorBuilder: (context, error, stack) => const SizedBox(
-                        width: 236,
-                        height: 120,
-                        child: Center(
-                          child: Icon(
-                            Icons.broken_image_outlined,
-                            color: AppColors.secondaryText,
-                            size: 32,
                           ),
-                        ),
-                      ),
                     ),
                   ),
                 ),
@@ -549,9 +552,9 @@ class _MessageBubble extends StatelessWidget {
                 children: [
                   Text(
                     formatMessageTime(message.createdAt),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
-                      color: AppColors.secondaryText,
+                      color: context.ongea.secondaryText,
                     ),
                   ),
                   if (isMine) ...[
@@ -563,9 +566,10 @@ class _MessageBubble extends StatelessWidget {
                           ? Icons.done_all
                           : Icons.done,
                       size: 16,
-                      color: message.status == 'read'
-                          ? AppColors.readTick
-                          : AppColors.receivedTick,
+                      color:
+                          message.status == 'read'
+                              ? context.ongea.readTick
+                              : context.ongea.receivedTick,
                     ),
                   ],
                 ],
@@ -578,6 +582,32 @@ class _MessageBubble extends StatelessWidget {
   }
 }
 
+class _DemoConversationNotice extends StatelessWidget {
+  const _DemoConversationNotice();
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    top: false,
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      color: context.ongea.surface,
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: context.ongea.secondaryText),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Mode démo : les messages sont des exemples. L’envoi nécessite une configuration Firebase.',
+              style: TextStyle(color: context.ongea.secondaryText),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _Composer extends StatelessWidget {
   const _Composer({
     required this.controller,
@@ -585,7 +615,6 @@ class _Composer extends StatelessWidget {
     required this.onEmoji,
     required this.onAttachment,
     required this.onCamera,
-    required this.onMic,
     required this.onSend,
   });
 
@@ -594,7 +623,6 @@ class _Composer extends StatelessWidget {
   final VoidCallback onEmoji;
   final VoidCallback onAttachment;
   final VoidCallback onCamera;
-  final VoidCallback onMic;
   final VoidCallback onSend;
 
   @override
@@ -603,16 +631,16 @@ class _Composer extends StatelessWidget {
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(7, 8, 8, 8),
-        color: AppColors.chatBackground,
+        color: context.ongea.chatBackground,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             IconButton(
               tooltip: 'Émojis',
               onPressed: onEmoji,
-              icon: const Icon(
+              icon: Icon(
                 Icons.emoji_emotions_outlined,
-                color: AppColors.secondaryText,
+                color: context.ongea.secondaryText,
               ),
             ),
             Expanded(
@@ -624,7 +652,7 @@ class _Composer extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: 'Écrire un message',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.ongea.surface,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 15,
                     vertical: 12,
@@ -639,46 +667,44 @@ class _Composer extends StatelessWidget {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(color: AppColors.primary),
+                    borderSide: BorderSide(color: context.ongea.primary),
                   ),
                 ),
               ),
             ),
             IconButton(
-              tooltip: 'Joindre un fichier',
+              tooltip: 'Joindre une image',
               onPressed: onAttachment,
-              icon: const Icon(
-                Icons.attach_file,
-                color: AppColors.secondaryText,
-              ),
+              icon: Icon(Icons.attach_file, color: context.ongea.secondaryText),
             ),
             if (!hasText)
               IconButton(
                 tooltip: 'Appareil photo',
                 onPressed: onCamera,
-                icon: const Icon(
-                  Icons.camera_alt_outlined,
-                  color: AppColors.secondaryText,
-                ),
-              ),
-            Container(
-              width: 48,
-              height: 48,
-              margin: const EdgeInsets.only(left: 2, bottom: 2),
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                tooltip: hasText ? 'Envoyer' : 'Message vocal',
-                onPressed: hasText ? onSend : onMic,
                 icon: Icon(
-                  hasText ? Icons.send_rounded : Icons.mic_none_rounded,
-                  color: Colors.white,
-                  size: 21,
+                  Icons.camera_alt_outlined,
+                  color: context.ongea.secondaryText,
                 ),
               ),
-            ),
+            if (hasText)
+              Container(
+                width: 48,
+                height: 48,
+                margin: const EdgeInsets.only(left: 2, bottom: 2),
+                decoration: BoxDecoration(
+                  color: context.ongea.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  tooltip: 'Envoyer',
+                  onPressed: onSend,
+                  icon: Icon(
+                    Icons.send_rounded,
+                    color: context.ongea.onPrimary,
+                    size: 21,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

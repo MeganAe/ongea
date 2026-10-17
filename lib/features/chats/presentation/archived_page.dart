@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/models/app_user.dart';
 import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_avatar.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/ongea_skeleton.dart';
 import '../data/chat_repository.dart';
 
 class ArchivedPage extends ConsumerWidget {
@@ -35,23 +36,27 @@ class ArchivedPage extends ConsumerWidget {
         ),
       ),
       body: chatsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-        error: (error, stack) => const EmptyState(
-          icon: Icons.archive_outlined,
-          title: 'Impossible de charger',
-          message: 'Réessayez lorsque votre connexion sera rétablie.',
-        ),
-        data: (allChats) {
-          final chats = allChats
-              .where((chat) => chat.isArchivedFor(userId))
-              .toList();
-          if (chats.isEmpty) {
-            return const EmptyState(
+        loading: () => OngeaListSkeleton(itemCount: 5),
+        error:
+            (error, stack) => const EmptyState(
               icon: Icons.archive_outlined,
-              title: 'Aucune discussion archivée',
-              message: 'Les discussions que vous archivez apparaîtront ici.',
+              title: 'Impossible de charger',
+              message: 'Réessayez lorsque votre connexion sera rétablie.',
+            ),
+        data: (allChats) {
+          final chats =
+              allChats.where((chat) => chat.isArchivedFor(userId)).toList();
+          if (chats.isEmpty) {
+            return EmptyState(
+              icon: Icons.archive_outlined,
+              title:
+                  demo
+                      ? 'Aucune archive de démonstration'
+                      : 'Aucune discussion archivée',
+              message:
+                  demo
+                      ? 'Les exemples du mode démo sont en lecture seule.'
+                      : 'Les discussions que vous archivez apparaîtront ici.',
             );
           }
           return ListView.separated(
@@ -59,14 +64,12 @@ class ArchivedPage extends ConsumerWidget {
             separatorBuilder: (_, __) => const Divider(height: 1, indent: 84),
             itemBuilder: (context, index) {
               final chat = chats[index];
-              final otherIds = chat.participants
-                  .where((id) => id != userId)
-                  .toList();
+              final otherIds =
+                  chat.participants.where((id) => id != userId).toList();
               final otherId = otherIds.isEmpty ? '' : otherIds.first;
               final contact = users[otherId];
-              final name = chat.isGroup
-                  ? 'Groupe Ongea'
-                  : (contact?.name ?? 'Contact');
+              final name =
+                  chat.isGroup ? 'Groupe Ongea' : (contact?.name ?? 'Contact');
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -87,48 +90,43 @@ class ArchivedPage extends ConsumerWidget {
                   children: [
                     Text(
                       formatChatTime(chat.lastMessageAt),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.secondaryText,
+                        color: context.ongea.secondaryText,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    IconButton(
-                      tooltip: 'Désarchiver',
-                      visualDensity: VisualDensity.compact,
-                      onPressed: demo
-                          ? () => ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Action indisponible en mode démo.',
+                    if (!demo) ...[
+                      const SizedBox(height: 4),
+                      IconButton(
+                        tooltip: 'Désarchiver',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () async {
+                          try {
+                            await ChatRepository().setPreference(
+                              chat.id,
+                              userId,
+                              'archived',
+                              false,
+                            );
+                          } catch (_) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Impossible de désarchiver cette discussion.',
+                                  ),
                                 ),
-                              ),
-                            )
-                          : () async {
-                              try {
-                                await ChatRepository().setPreference(
-                                  chat.id,
-                                  userId,
-                                  'archived',
-                                  false,
-                                );
-                              } catch (_) {
-                                if (context.mounted)
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Impossible de désarchiver cette discussion.',
-                                      ),
-                                    ),
-                                  );
-                              }
-                            },
-                      icon: const Icon(
-                        Icons.unarchive_outlined,
-                        size: 20,
-                        color: AppColors.primary,
+                              );
+                            }
+                          }
+                        },
+                        icon: Icon(
+                          Icons.unarchive_outlined,
+                          size: 20,
+                          color: context.ongea.primary,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 onTap: () => context.push('/chat/${chat.id}'),

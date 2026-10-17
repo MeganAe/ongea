@@ -145,6 +145,8 @@ class _OngeaAppState extends ConsumerState<OngeaApp>
       title: 'Ongea',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
       routerConfig: ref.watch(appRouterProvider),
       scaffoldMessengerKey: rootMessengerKey,
       locale: const Locale('fr', 'FR'),

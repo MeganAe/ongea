@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../widgets/auth_gate.dart';
 import '../../features/auth/presentation/auth_page.dart';
-import '../../features/calls/presentation/calls_page.dart';
 import '../../features/chats/presentation/archived_page.dart';
 import '../../features/chats/presentation/chats_page.dart';
 import '../../features/chats/presentation/contact_info_page.dart';
@@ -22,9 +21,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/auth', builder: (context, state) => const AuthPage()),
       ShellRoute(
-        builder: (context, state, child) => AuthGate(
-          child: _MainScaffold(location: state.uri.path, child: child),
-        ),
+        builder:
+            (context, state, child) => AuthGate(
+              child: _MainScaffold(location: state.uri.path, child: child),
+            ),
         routes: [
           GoRoute(
             path: '/chats',
@@ -33,10 +33,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/status',
             builder: (context, state) => const StatusPage(),
-          ),
-          GoRoute(
-            path: '/calls',
-            builder: (context, state) => const CallsPage(),
           ),
           GoRoute(
             path: '/settings',
@@ -50,18 +46,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/chat/:chatId',
-        builder: (context, state) => AuthGate(
-          child: ConversationPage(chatId: state.pathParameters['chatId']!),
-        ),
+        builder:
+            (context, state) => AuthGate(
+              child: ConversationPage(chatId: state.pathParameters['chatId']!),
+            ),
       ),
       GoRoute(
         path: '/contact/:userId',
-        builder: (context, state) => AuthGate(
-          child: ContactInfoPage(
-            userId: state.pathParameters['userId']!,
-            chatId: state.uri.queryParameters['chatId'],
-          ),
-        ),
+        builder:
+            (context, state) => AuthGate(
+              child: ContactInfoPage(
+                userId: state.pathParameters['userId']!,
+                chatId: state.uri.queryParameters['chatId'],
+              ),
+            ),
       ),
       GoRoute(
         path: '/archived',
@@ -69,9 +67,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/status/view/:statusId',
-        builder: (context, state) => AuthGate(
-          child: StatusViewerPage(statusId: state.pathParameters['statusId']!),
-        ),
+        builder:
+            (context, state) => AuthGate(
+              child: StatusViewerPage(
+                statusId: state.pathParameters['statusId']!,
+              ),
+            ),
       ),
     ],
   );
@@ -91,8 +92,7 @@ class _MainScaffold extends StatelessWidget {
 
   int get _selectedIndex {
     if (location.startsWith('/status')) return 1;
-    if (location.startsWith('/calls')) return 2;
-    if (location.startsWith('/settings')) return 3;
+    if (location.startsWith('/settings')) return 2;
     return 0;
   }
 
@@ -103,7 +103,7 @@ class _MainScaffold extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
-          const routes = ['/chats', '/status', '/calls', '/settings'];
+          const routes = ['/chats', '/status', '/settings'];
           context.go(routes[index]);
         },
         destinations: const [
@@ -116,11 +116,6 @@ class _MainScaffold extends StatelessWidget {
             icon: Icon(Icons.circle_outlined),
             selectedIcon: Icon(Icons.circle),
             label: 'Actus',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.call_outlined),
-            selectedIcon: Icon(Icons.call),
-            label: 'Appels',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

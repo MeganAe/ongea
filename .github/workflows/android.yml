@@ -54,8 +54,35 @@ jobs:
             echo "Aucune configuration Firebase fournie : compilation du mode démo."
           fi
 
+      - name: Restaurer la clé fixe de signature Android
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$ANDROID_KEYSTORE_B64" || -z "$ANDROID_KEYSTORE_PASSWORD" ]]; then
+            echo "::error::Ajoutez les secrets ANDROID_KEYSTORE_B64 et ANDROID_KEYSTORE_PASSWORD avant de compiler une release."
+            exit 1
+          fi
+
+          mkdir -p android/app
+          printf '%s' "$ANDROID_KEYSTORE_B64" | base64 --decode > android/app/ongea-release.jks
+          cat > android/key.properties <<EOF
+          storeFile=ongea-release.jks
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyAlias=ongea
+          keyPassword=$ANDROID_KEYSTORE_PASSWORD
+          EOF
+          chmod 600 android/key.properties android/app/ongea-release.jks
+          keytool -list -keystore android/app/ongea-release.jks \
+            -alias ongea -storepass "$ANDROID_KEYSTORE_PASSWORD" >/dev/null
+          echo "Clé de signature fixe restaurée et vérifiée."
+
       - name: Installer les dépendances Flutter
         run: flutter pub get
+
+      - name: Vérifier les tests Flutter
+        run: flutter test
 
       - name: Rendre le wrapper Gradle exécutable
         working-directory: android

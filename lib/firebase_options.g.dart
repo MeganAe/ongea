@@ -32,12 +32,14 @@ abstract class DefaultFirebaseOptions {
     authDomain: 'YOUR_FIREBASE_PROJECT_ID.firebaseapp.com',
     storageBucket: 'YOUR_FIREBASE_PROJECT_ID.appspot.com',
   );
+  // Garder ces valeurs de démonstration dans Git : le workflow les remplace
+  // depuis FIREBASE_OPTIONS_B64 pour toute compilation connectée à Firebase.
   static const android = FirebaseOptions(
-    apiKey: 'AIzaSyDDnfLik4mBxvSmvTurJoRQdY_6W04QwpY',
-    appId: '1:749733793997:android:392bf6c72d8d1f32aa1984',
-    messagingSenderId: '749733793997',
-    projectId: 'ongea-25f89',
-    storageBucket: 'ongea-25f89.firebasestorage.app',
+    apiKey: 'YOUR_FIREBASE_API_KEY',
+    appId: '1:000000000000:android:0000000000000000',
+    messagingSenderId: '000000000000',
+    projectId: 'YOUR_FIREBASE_PROJECT_ID',
+    storageBucket: 'YOUR_FIREBASE_PROJECT_ID.appspot.com',
   );
   static const ios = FirebaseOptions(
     apiKey: 'YOUR_FIREBASE_API_KEY',

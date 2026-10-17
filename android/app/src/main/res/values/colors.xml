@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ongea_brand_primary">#135B60</color>
+    <color name="ongea_brand_accent">#C9674B</color>
+    <color name="ongea_splash_background">#103A3D</color>
+    <color name="ongea_window_background">#F8FAF9</color>
+    <color name="ongea_dark_background">#101A1B</color>
+</resources>

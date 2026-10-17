@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/models/app_user.dart';
 import '../../../core/models/status_model.dart';
 import '../../../core/media/cloudinary_media_service.dart';
@@ -11,38 +11,43 @@ import '../../../core/providers/app_providers.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_avatar.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/ongea_skeleton.dart';
 import '../data/status_repository.dart';
 
 class StatusPage extends ConsumerWidget {
   const StatusPage({super.key});
 
   Future<void> _createStatus(BuildContext context, WidgetRef ref) async {
+    final canSharePhoto = CloudinaryMediaService().isConfigured;
     final choice = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: const Text('Écrire un statut'),
-              onTap: () => Navigator.pop(context, 'text'),
+      builder:
+          (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: const Text('Écrire un statut'),
+                  onTap: () => Navigator.pop(context, 'text'),
+                ),
+                if (canSharePhoto) ...[
+                  ListTile(
+                    leading: const Icon(Icons.photo_library_outlined),
+                    title: const Text('Partager une photo'),
+                    onTap: () => Navigator.pop(context, 'gallery'),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.camera_alt_outlined),
+                    title: const Text('Prendre une photo'),
+                    onTap: () => Navigator.pop(context, 'camera'),
+                  ),
+                ],
+                const SizedBox(height: 8),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Partager une photo'),
-              onTap: () => Navigator.pop(context, 'gallery'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Prendre une photo'),
-              onTap: () => Navigator.pop(context, 'camera'),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+          ),
     );
     if (choice == null || !context.mounted) return;
     final uid = ref.read(currentUserProvider)?.uid;
@@ -58,28 +63,30 @@ class StatusPage extends ConsumerWidget {
       final controller = TextEditingController();
       final text = await showDialog<String>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Nouveau statut'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            maxLength: 500,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              hintText: 'Que souhaitez-vous partager ?',
+        builder:
+            (context) => AlertDialog(
+              title: const Text('Nouveau statut'),
+              content: TextField(
+                controller: controller,
+                autofocus: true,
+                maxLength: 500,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  hintText: 'Que souhaitez-vous partager ?',
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Annuler'),
+                ),
+                FilledButton(
+                  onPressed:
+                      () => Navigator.pop(context, controller.text.trim()),
+                  child: const Text('Publier'),
+                ),
+              ],
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, controller.text.trim()),
-              child: const Text('Publier'),
-            ),
-          ],
-        ),
       );
       controller.dispose();
       if (text == null || text.trim().isEmpty) return;
@@ -101,9 +108,8 @@ class StatusPage extends ConsumerWidget {
       );
       return;
     }
-    final source = choice == 'camera'
-        ? ImageSource.camera
-        : ImageSource.gallery;
+    final source =
+        choice == 'camera' ? ImageSource.camera : ImageSource.gallery;
     try {
       final image = await ImagePicker().pickImage(
         source: source,
@@ -137,23 +143,23 @@ class StatusPage extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Actus'),
         actions: [
-          IconButton(
-            tooltip: 'Créer un statut',
-            onPressed: () => _createStatus(context, ref),
-            icon: const Icon(Icons.add_circle_outline),
-          ),
+          if (!demo)
+            IconButton(
+              tooltip: 'Créer un statut',
+              onPressed: () => _createStatus(context, ref),
+              icon: const Icon(Icons.add_circle_outline),
+            ),
           const SizedBox(width: 8),
         ],
       ),
       body: statusesAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-        error: (error, stack) => const EmptyState(
-          icon: Icons.cloud_off_outlined,
-          title: 'Actus indisponibles',
-          message: 'Vérifiez votre connexion et réessayez.',
-        ),
+        loading: () => OngeaListSkeleton(itemCount: 5),
+        error:
+            (error, stack) => const EmptyState(
+              icon: Icons.cloud_off_outlined,
+              title: 'Actus indisponibles',
+              message: 'Vérifiez votre connexion et réessayez.',
+            ),
         data: (allStatuses) {
           final mine =
               allStatuses.where((status) => status.ownerId == uid).toList()
@@ -197,14 +203,38 @@ class StatusPage extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
             children: [
+              if (demo)
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: context.ongea.softSurface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: context.ongea.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: context.ongea.primary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Mode démo · statuts d’exemple en lecture seule.',
+                          style: TextStyle(color: context.ongea.secondaryText),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               _MyStatusTile(
                 name: myProfile?.name ?? 'Mon statut',
                 photoUrl: myProfile?.photoUrl,
                 latest: mine.isEmpty ? null : mine.first,
-                onTap: mine.isEmpty
-                    ? () => _createStatus(context, ref)
-                    : () => context.push('/status/view/${mine.first.id}'),
-                onAdd: () => _createStatus(context, ref),
+                onTap:
+                    mine.isEmpty
+                        ? (demo ? null : () => _createStatus(context, ref))
+                        : () => context.push('/status/view/${mine.first.id}'),
+                onAdd: demo ? null : () => _createStatus(context, ref),
               ),
               if (recent.isNotEmpty) ...[
                 const _StatusHeading('RÉCENTES'),
@@ -214,8 +244,10 @@ class StatusPage extends ConsumerWidget {
                     status: entry.value.first,
                     viewed: false,
                     fallbackName: 'Contact Ongea',
-                    onTap: () =>
-                        context.push('/status/view/${entry.value.first.id}'),
+                    onTap:
+                        () => context.push(
+                          '/status/view/${entry.value.first.id}',
+                        ),
                   ),
               ],
               if (viewed.isNotEmpty) ...[
@@ -226,8 +258,10 @@ class StatusPage extends ConsumerWidget {
                     status: entry.value.first,
                     viewed: true,
                     fallbackName: 'Contact Ongea',
-                    onTap: () =>
-                        context.push('/status/view/${entry.value.first.id}'),
+                    onTap:
+                        () => context.push(
+                          '/status/view/${entry.value.first.id}',
+                        ),
                   ),
               ],
               if (recent.isEmpty && viewed.isEmpty)
@@ -236,30 +270,22 @@ class StatusPage extends ConsumerWidget {
                   child: EmptyState(
                     icon: Icons.circle_outlined,
                     title: 'Rien de nouveau',
-                    message: 'Les statuts de vos contacts apparaîtront ici et disparaîtront après 24 heures.',
-                  ),
-                ),
-              if (demo)
-                const Padding(
-                  padding: EdgeInsets.only(top: 18),
-                  child: Text(
-                    'Mode démo · Les statuts présentés sont des exemples.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.secondaryText,
-                    ),
+                    message:
+                        'Les statuts de vos contacts apparaîtront ici et disparaîtront après 24 heures.',
                   ),
                 ),
             ],
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: 'Ajouter une photo ou un statut',
-        onPressed: () => _createStatus(context, ref),
-        child: const Icon(Icons.camera_alt_outlined),
-      ),
+      floatingActionButton:
+          demo
+              ? null
+              : FloatingActionButton(
+                tooltip: 'Ajouter une photo ou un statut',
+                onPressed: () => _createStatus(context, ref),
+                child: const Icon(Icons.camera_alt_outlined),
+              ),
     );
   }
 }
@@ -275,8 +301,8 @@ class _MyStatusTile extends StatelessWidget {
   final String name;
   final String? photoUrl;
   final StatusModel? latest;
-  final VoidCallback onTap;
-  final VoidCallback onAdd;
+  final VoidCallback? onTap;
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -285,30 +311,38 @@ class _MyStatusTile extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         AppAvatar(name: name, photoUrl: photoUrl, size: 54),
-        Positioned(
-          right: -11,
-          bottom: -11,
-          child: SizedBox(
-            width: 44,
-            height: 44,
-            child: InkResponse(
-              onTap: onAdd,
-              radius: 22,
-              child: Center(
-                child: Container(
-                  width: 23,
-                  height: 23,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
+        if (onAdd != null)
+          Positioned(
+            right: -11,
+            bottom: -11,
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: InkResponse(
+                onTap: onAdd,
+                radius: 22,
+                child: Center(
+                  child: Container(
+                    width: 23,
+                    height: 23,
+                    decoration: BoxDecoration(
+                      color: context.ongea.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: context.ongea.surface,
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.add,
+                      size: 16,
+                      color: context.ongea.onPrimary,
+                    ),
                   ),
-                  child: const Icon(Icons.add, size: 16, color: Colors.white),
                 ),
               ),
             ),
           ),
-        ),
       ],
     ),
     title: const Text(
@@ -317,9 +351,11 @@ class _MyStatusTile extends StatelessWidget {
     ),
     subtitle: Text(
       latest == null
-          ? 'Touchez pour ajouter une actu'
+          ? onAdd == null
+              ? 'Publication désactivée en mode démo'
+              : 'Touchez pour ajouter une actu'
           : 'Ma mise à jour · ${formatChatTime(latest!.createdAt)}',
-      style: const TextStyle(color: AppColors.secondaryText),
+      style: TextStyle(color: context.ongea.secondaryText),
     ),
     onTap: onTap,
   );
@@ -333,11 +369,11 @@ class _StatusHeading extends StatelessWidget {
     padding: const EdgeInsets.only(top: 23, bottom: 8),
     child: Text(
       label,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w700,
         letterSpacing: 1,
-        color: AppColors.secondaryText,
+        color: context.ongea.secondaryText,
       ),
     ),
   );
@@ -360,16 +396,17 @@ class _StatusContactTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = user?.name ?? fallbackName;
-    final preview = status.isImage
-        ? 'Photo · ${formatChatTime(status.createdAt)}'
-        : '${status.text ?? 'Statut'} · ${formatChatTime(status.createdAt)}';
+    final preview =
+        status.isImage
+            ? 'Photo · ${formatChatTime(status.createdAt)}'
+            : '${status.text ?? 'Statut'} · ${formatChatTime(status.createdAt)}';
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 2),
       leading: AppAvatar(
         name: name,
         photoUrl: user?.photoUrl,
         size: 50,
-        ringColor: viewed ? AppColors.border : AppColors.primary,
+        ringColor: viewed ? context.ongea.border : context.ongea.primary,
         ringWidth: 2.3,
       ),
       title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -377,7 +414,7 @@ class _StatusContactTile extends StatelessWidget {
         preview,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: AppColors.secondaryText),
+        style: TextStyle(color: context.ongea.secondaryText),
       ),
       onTap: onTap,
     );

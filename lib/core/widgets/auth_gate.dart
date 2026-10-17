@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../constants/app_colors.dart';
 import '../providers/app_providers.dart';
+import 'ongea_skeleton.dart';
 import '../../features/auth/presentation/auth_page.dart';
 
 class AuthGate extends ConsumerWidget {
@@ -19,11 +19,7 @@ class AuthGate extends ConsumerWidget {
 
     final auth = ref.watch(authStateProvider);
     return auth.when(
-      loading: () => const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
-        ),
-      ),
+      loading: () => Scaffold(body: OngeaListSkeleton(itemCount: 5)),
       error: (error, stack) => const AuthPage(),
       data: (user) => user == null ? const AuthPage() : child,
     );
