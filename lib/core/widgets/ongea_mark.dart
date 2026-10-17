@@ -53,7 +53,7 @@ class _OngeaMarkPainter extends CustomPainter {
     canvas.drawPath(tail, outline);
 
     final dots = Paint()..color = accentColor;
-    for (final x in const [16.5, 24, 31.5]) {
+    for (final x in const <double>[16.5, 24.0, 31.5]) {
       canvas.drawCircle(Offset(x, 19.5), 2.15, dots);
     }
     canvas.restore();
